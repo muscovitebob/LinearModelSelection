@@ -4,7 +4,17 @@ output: html_notebook
 ---
 
 ```{r}
+library(glmnet) # alpha = 0 is ridge, 1 is lasso
+library(pls)
 prostate = get(load("prostate2.Rdata"))
 head(prostate)
+prostate$svi = as.factor(prostate$svi)
+summary(prostate)
 ```
+
+# Variable evaluation and comparison
+
+
+
+
 
