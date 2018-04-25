@@ -1,6 +1,10 @@
 ---
-title: "R Notebook"
+title: "Linear model selection"
 output: html_notebook
 ---
 
-Words
+```{r}
+prostate = get(load("prostate2.Rdata"))
+head(prostate)
+```
+
