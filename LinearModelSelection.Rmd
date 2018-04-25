@@ -6,15 +6,33 @@ output: html_notebook
 ```{r}
 library(glmnet) # alpha = 0 is ridge, 1 is lasso
 library(pls)
+library(leaps)
 prostate = get(load("prostate2.Rdata"))
 head(prostate)
 prostate$svi = as.factor(prostate$svi)
 summary(prostate)
+attach(prostate)
 ```
 
 # Variable evaluation and comparison
 
+```{r}
+plot(prostate)
+```
 
 
+```{r}
+plot(prostate$Cscore, prostate$lweight)
+```
+
+There are 97 data points, seven predictor variables and one response variable. There seem to be positive correlations between Cscore and lpsa as well as lcavol and lpsa.
+
+
+# Forward stepwise selection
+
+```{r}
+fwd = regsubsets(Cscore~., data = prostate, nvmax = 10, method="forward")
+summary(fwd)
+```
 
 
