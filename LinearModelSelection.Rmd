@@ -38,12 +38,20 @@ summary(fwd)
 ```{r}
 
 bestforward = function (response, nvmax = 19, data){
+  modellist = NULL
   p = length(names(data))
-  k = p - 1
-  nullmodel = lm(response~1)
-  for (i in 2:k){
-    for (i in 1:(p-k)){
+  k = 0:(p-1)
+  null = lm(response~1)
+  for (i in k){
+    modellist = c()
+    for (j in 2:(p-k)){ #this only does the first variable though
+      iterformula = formula(Cscore~data[,j])
+      modellist[j] = lm(Cscore~data[,j]) # how to add extra variables to lm?
       
+      provFormulaString = paste(response, "~")
+      for (z in 2:j){}
+        provFormulaString = paste(provFormulaString, "+", names(prostate)[j])
+      }
     }
   }
 }
