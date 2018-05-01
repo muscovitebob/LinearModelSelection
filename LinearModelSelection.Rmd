@@ -35,18 +35,4 @@ fwd = regsubsets(Cscore~., data = prostate, nvmax = 10, method="forward")
 summary(fwd)
 ```
 
-```{r}
-
-bestforward = function (response, nvmax = 19, data){
-  p = length(names(data))
-  k = p - 1
-  nullmodel = lm(response~1)
-  for (i in 2:k){
-    for (i in 1:(p-k)){
-      
-    }
-  }
-}
-
-```
 
