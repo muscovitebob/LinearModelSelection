@@ -32,7 +32,6 @@ bestforward = function (data){
     #discard the variable used in the model from further use via constructedData
     toBeDiscarded = names(bestModel$coefficients)[-1]
     constructionDataNamespace = names(constructionData)
-    toBeDiscarded = toBeDiscarded[!toBeDiscarded %in% constructionDataNamespace]
     variableInDiscardButNotInConstructionData = toBeDiscarded[!toBeDiscarded %in% constructionDataNamespace]
     toBeDiscarded = toBeDiscarded[toBeDiscarded != variableInDiscardButNotInConstructionData]
     if (length(toBeDiscarded) > 0){
@@ -47,7 +46,7 @@ bestforward = function (data){
   for (h in 1:length(bestModelList)){
     BICforModels[h] = BIC(bestModelList[[h]])
   }
-  bestBICModelNumber = which.max(BICforModels)
+  bestBICModelNumber = which.min(BICforModels)
   return(bestModelList[[bestBICModelNumber]])
 }
 
