@@ -10,22 +10,13 @@ bestforward = function (data){
   predictorData = data
   predictorData[,1] = NULL
   bestModelList[[1]] = nullmod
+  constructionData = predictorData
   for (i in k){ #iterate over all variables, starting with null model 0 and to p-1
-    # now we need to pick a subset of variables that have not yet been used
-    if (length(usedUpVariables) > 0 && usedUpVariables == names(data)){
-      break
-    }
-    
-    if (length(usedUpVariables != 0)){
-      constructionData = predictorData[,-which(names(predictorData) %in% usedUpVariables)]
-    } else {
-      constructionData = predictorData
-    }
     
     # now we need to iterate as many times as there are unused variables to construct the candidate model matrix
     modellist = vector(mode="list")
     for (z in 1:length(names(constructionData))){
-      itermodel = update(bestModelList[[i + 1]], ~. + as.matrix(constructionData[z]))
+      itermodel = update(bestModelList[[i + 1]], paste("~ . +", names(constructionData)[z]))
       modellist[[z]] = itermodel
       remove(itermodel)
     }
@@ -36,11 +27,17 @@ bestforward = function (data){
       rSquaredList[h] = summary(modellist[[h]])$r.squared
     }
     bestModelNumber = which.max(rSquaredList)
-    bestModel = modellist[bestModelNumber]
-    bestModelList[i+2] = bestModel
-    vars = variable.names(bestModel)
-    vars = vars[-1]
-    usedUpVariables = append(usedUpVariables, vars) #add used variable to discard pile
+    bestModel = modellist[[bestModelNumber]]
+    bestModelList[[i+2]] = bestModel
+    #discard the variable used in the model from further use via constructedData
+    toBeDiscarded = names(bestModel$coefficients)[-1]
+    
+    # TODO: fix this so it selects the variables chosen and removes them correctly
+    for (j in 1:length(toBeDiscarded)){
+      if (!is.na(-(match(toBeDiscarded, colnames(constructionData))[j])){
+        constructionData = constructionData[,-(match(toBeDiscarded, colnames(constructionData))[j])]
+      }
+    }
   }
   
   #now that we have the best models of all Mk+1 subsets, pick the best best model
