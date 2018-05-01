@@ -31,13 +31,15 @@ bestforward = function (data){
     bestModelList[[i+2]] = bestModel
     #discard the variable used in the model from further use via constructedData
     toBeDiscarded = names(bestModel$coefficients)[-1]
+    constructionDataNamespace = names(constructionData)
+    toBeDiscarded = toBeDiscarded[!toBeDiscarded %in% constructionDataNamespace]
+    variableInDiscardButNotInConstructionData = toBeDiscarded[!toBeDiscarded %in% constructionDataNamespace]
+    toBeDiscarded = toBeDiscarded[toBeDiscarded != variableInDiscardButNotInConstructionData]
+    if (length(toBeDiscarded) > 0){
+      constructionData = constructionData[,-match(toBeDiscarded, names(constructionData))]
+      }
     
     # TODO: fix this so it selects the variables chosen and removes them correctly
-    for (j in 1:length(toBeDiscarded)){
-      if (!is.na(-(match(toBeDiscarded, colnames(constructionData))[j])){
-        constructionData = constructionData[,-(match(toBeDiscarded, colnames(constructionData))[j])]
-      }
-    }
   }
   
   #now that we have the best models of all Mk+1 subsets, pick the best best model
