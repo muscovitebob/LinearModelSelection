@@ -4,15 +4,13 @@ bestforward = function (data){
   response = data[1]
   bestModelList = vector(mode="list")
   p = length(names(data))
-  k = 0:(p-1)
+  k = 0:(p-2)
   nullmod = lm(as.matrix(data[1])~ 1, data = data)
-  usedUpVariables = c()
   predictorData = data
   predictorData[,1] = NULL
   bestModelList[[1]] = nullmod
   constructionData = predictorData
   for (i in k){ #iterate over all variables, starting with null model 0 and to p-1
-    
     # now we need to iterate as many times as there are unused variables to construct the candidate model matrix
     modellist = vector(mode="list")
     for (z in 1:length(names(constructionData))){
@@ -32,11 +30,11 @@ bestforward = function (data){
     #discard the variable used in the model from further use via constructedData
     toBeDiscarded = names(bestModel$coefficients)[-1]
     constructionDataNamespace = names(constructionData)
-    variableInDiscardButNotInConstructionData = toBeDiscarded[!toBeDiscarded %in% constructionDataNamespace]
-    toBeDiscarded = toBeDiscarded[toBeDiscarded != variableInDiscardButNotInConstructionData]
+    variableInDiscardButNotInConstructionData = toBeDiscarded %in% constructionDataNamespace
+    toBeDiscarded = toBeDiscarded[variableInDiscardButNotInConstructionData]
     if (length(toBeDiscarded) > 0){
-      constructionData = constructionData[,-match(toBeDiscarded, names(constructionData))]
-      }
+      constructionData = constructionData[,-match(toBeDiscarded, names(constructionData)), drop=F]
+      } 
     
     # TODO: fix this so it selects the variables chosen and removes them correctly
   }
