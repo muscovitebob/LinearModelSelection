@@ -35,4 +35,30 @@ fwd = regsubsets(Cscore~., data = prostate, nvmax = 10, method="forward")
 summary(fwd)
 ```
 
+# Lasso model
+```{r}
+library(glmnet)
+x = model.matrix(Cscore~.,prostate)[,-1]
+y = prostate$Cscore
+set.seed(0)
+train=sample(1:nrow(x),nrow(x)/2)
+test=(-train)
+y.test=y[test]
+
+grid=10^seq(10,-2,length=100) 
+lasso.model=glmnet(x[train,],y[train],alpha=1,lambda=grid, thresh = 1e-12)
+plot(lasso.model, label = TRUE)
+plot(lasso.model,xvar="lambda",label=TRUE)#behaviour coef plotted against log lambda
+plot(lasso.model,xvar="dev",label=TRUE)#behaviour coef plotted against percentage deviance explained
+
+cv.out=cv.glmnet(x[train,],y[train],alpha=1)
+plot(cv.out)
+bestlambda=cv.out$lambda.min
+lasso.pred=predict(lasso.model,s=bestlambda,newx=x[test,])
+mean((lasso.pred-y.test)^2)
+out=glmnet(x,y,alpha=1,lambda=grid)
+lasso.coef=predict(out,type="coefficients",s=bestlambda)[1:8,]
+lasso.coef
+
+```
 
