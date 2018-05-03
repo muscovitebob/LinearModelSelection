@@ -37,24 +37,45 @@ summary(fwd)
 
 ```{r}
 
-bestforward = function (response, nvmax = 19, data){
-  modellist = NULL
+bestforward = function (response, data){
+  bestModelList = vector(mode="list")
   p = length(names(data))
   k = 0:(p-1)
   null = lm(response~1)
-  for (i in k){
-    modellist = c()
-    for (j in 2:(p-k)){ #this only does the first variable though
-      iterformula = formula(Cscore~data[,j])
-      modellist[j] = lm(Cscore~data[,j]) # how to add extra variables to lm?
+  for (i in k){ #iterate over all variables
+    modellist = vector(mode="list")
+    for (j in 2:(p-k)){ #iterate over all Mk+1
       
       provFormulaString = paste(response, "~")
-      for (z in 2:j){}
-        provFormulaString = paste(provFormulaString, "+", names(prostate)[j])
+      for (z in 2:j){#for the current Mk+1, create the model string
+        if (z == 2){
+          provFormulaString = paste(provFormulaString, names(data)[z])
+        } else {
+          provFormulaString = paste(provFormulaString, "+", names(data)[z])
+        }
       }
+      itermodel = lm(as.formula(provFormulaString), data = data) #assigns the current Mk+1 this model
+      modellist[[j]] = itermodel #add this model to the candidate model list
     }
+    
+    rSquaredList = vector(mode="list")
+    for (h in 1:length(modellist)){
+      rSquaredList = summary(modellist[[h]])$r.squared
+    }
+    bestModelNumber = which.max(rSquaredList)
+    bestModel = modellist[bestModelNumber]
+    bestModelList[[i]] = bestModel
   }
+  
+  BICforModels = vector(mode="list")
+  for (h in 1:length(bestModelList)){
+    BICforModels[[h]] = BIC(bestModelList[[h]])
+  }
+  bestBICModelNumber = which.max(BICforModels)
+  return(bestModelList[[bestBICModelNumber]])
 }
+
+bestforward(Cscore, prostate)
 
 ```
 
