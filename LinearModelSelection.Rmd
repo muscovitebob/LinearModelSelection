@@ -40,7 +40,6 @@ summary(fwd)
 library(glmnet)
 x = model.matrix(Cscore~.,prostate)[,-1]
 y = prostate$Cscore
-set.seed(0)
 train=sample(1:nrow(x),nrow(x)/2)
 test=(-train)
 y.test=y[test]
