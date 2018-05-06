@@ -30,52 +30,78 @@ There are 97 data points, seven predictor variables and one response variable. T
 
 # Forward stepwise selection
 
+Let us try to select a model using forward stepwise selection.
+
 ```{r}
 fwd = regsubsets(Cscore~., data = prostate, nvmax = 10, method="forward")
 summary(fwd)
 ```
 
 ```{r}
-
-bestforward = function (response, data){
+bestforward = function (data){
+  response = data[1]
   bestModelList = vector(mode="list")
   p = length(names(data))
-  k = 0:(p-1)
-  null = lm(response~1)
-  for (i in k){ #iterate over all variables
+  k = 0:(p-2)
+  nullmod = lm(as.matrix(data[1])~ 1, data = data)
+  predictorData = data
+  predictorData[,1] = NULL
+  bestModelList[[1]] = nullmod
+  constructionData = predictorData
+  for (i in k){ #iterate over all variables, starting with null model 0 and to p-1
+    # now we need to iterate as many times as there are unused variables to construct the candidate model matrix
     modellist = vector(mode="list")
-    for (j in 2:(p-k)){ #iterate over all Mk+1
-      
-      provFormulaString = paste(response, "~")
-      for (z in 2:j){#for the current Mk+1, create the model string
-        if (z == 2){
-          provFormulaString = paste(provFormulaString, names(data)[z])
-        } else {
-          provFormulaString = paste(provFormulaString, "+", names(data)[z])
-        }
-      }
-      itermodel = lm(as.formula(provFormulaString), data = data) #assigns the current Mk+1 this model
-      modellist[[j]] = itermodel #add this model to the candidate model list
+    for (z in 1:length(names(constructionData))){
+      itermodel = update(bestModelList[[i + 1]], paste("~ . +", names(constructionData)[z]))
+      modellist[[z]] = itermodel
+      remove(itermodel)
     }
     
+    # select the best model out of this Mk+1 subset, picking the highest RSquared
     rSquaredList = vector(mode="list")
     for (h in 1:length(modellist)){
-      rSquaredList = summary(modellist[[h]])$r.squared
+      rSquaredList[h] = summary(modellist[[h]])$r.squared
     }
     bestModelNumber = which.max(rSquaredList)
-    bestModel = modellist[bestModelNumber]
-    bestModelList[[i]] = bestModel
+    bestModel = modellist[[bestModelNumber]]
+    bestModelList[[i+2]] = bestModel
+    #discard the variable used in the model from further use
+    #constructionData thus keeps track of which variables have been used up
+    toBeDiscarded = names(bestModel$coefficients)[-1]
+    constructionDataNamespace = names(constructionData)
+    variableInDiscardButNotInConstructionData = toBeDiscarded %in% constructionDataNamespace
+    toBeDiscarded = toBeDiscarded[variableInDiscardButNotInConstructionData]
+    if (length(toBeDiscarded) > 0){
+      constructionData = constructionData[,-match(toBeDiscarded, names(constructionData)), drop=F]
+      } 
   }
-  
+  #now that we have the best models of all Mk+1 subsets, pick the best best model via minimum BIC
   BICforModels = vector(mode="list")
   for (h in 1:length(bestModelList)){
-    BICforModels[[h]] = BIC(bestModelList[[h]])
+    BICforModels[h] = BIC(bestModelList[[h]])
   }
-  bestBICModelNumber = which.max(BICforModels)
+  bestBICModelNumber = which.min(BICforModels)
   return(bestModelList[[bestBICModelNumber]])
 }
 
-bestforward(Cscore, prostate)
+result = bestforward(prostate)
+result
+```
+
+As can be seen, our self-implemented forward stepwise algorithm and the regsubsets function are in agreement on which variables best describe the data. Unlike the algorithm described, regsubsets select the best model for a given number of variables, but our found model agrees with the two variable model selected by regsubsets.
+
+
+# Lasso
+
+First we must choose an appropriate $\lambda$ parameter. We can do this using k-fold cross-validation, using the best model determined in the previous section.
+
+```{r}
+set.seed(10)
+cvError = vector(mode="list")
+for (i in 1:10){
+  itermodel = lm(Cscore~lpsa + svi1)
+}
 
 ```
+
 
