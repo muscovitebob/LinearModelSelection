@@ -44,6 +44,7 @@ train=sample(1:nrow(x),nrow(x)/2)
 test=(-train)
 y.test=y[test]
 
+<<<<<<< HEAD
 grid=10^seq(10,-2,length=100) 
 lasso.model=glmnet(x[train,],y[train],alpha=1,lambda=grid, thresh = 1e-12)
 plot(lasso.model, label = TRUE)
@@ -84,5 +85,47 @@ mean((lasso.pred-y.test)^2)
 out=glmnet(x,y,alpha=1,lambda=grid)
 lasso.coef=predict(out,type="coefficients",s=bestlambda)[1:8,]
 lasso.coef
+=======
+bestforward = function (response, data){
+  bestModelList = vector(mode="list")
+  p = length(names(data))
+  k = 0:(p-1)
+  null = lm(response~1)
+  for (i in k){ #iterate over all variables
+    modellist = vector(mode="list")
+    for (j in 2:(p-k)){ #iterate over all Mk+1
+      
+      provFormulaString = paste(response, "~")
+      for (z in 2:j){#for the current Mk+1, create the model string
+        if (z == 2){
+          provFormulaString = paste(provFormulaString, names(data)[z])
+        } else {
+          provFormulaString = paste(provFormulaString, "+", names(data)[z])
+        }
+      }
+      itermodel = lm(as.formula(provFormulaString), data = data) #assigns the current Mk+1 this model
+      modellist[[j]] = itermodel #add this model to the candidate model list
+    }
+    
+    rSquaredList = vector(mode="list")
+    for (h in 1:length(modellist)){
+      rSquaredList = summary(modellist[[h]])$r.squared
+    }
+    bestModelNumber = which.max(rSquaredList)
+    bestModel = modellist[bestModelNumber]
+    bestModelList[[i]] = bestModel
+  }
+  
+  BICforModels = vector(mode="list")
+  for (h in 1:length(bestModelList)){
+    BICforModels[[h]] = BIC(bestModelList[[h]])
+  }
+  bestBICModelNumber = which.max(BICforModels)
+  return(bestModelList[[bestBICModelNumber]])
+}
+
+bestforward(Cscore, prostate)
+
+>>>>>>> 5dc7aa29847e31da8d69622d375d4dd2eb3df597
 ```
 
