@@ -37,9 +37,63 @@ fwd = regsubsets(Cscore~., data = prostate, nvmax = 10, method="forward")
 summary(fwd)
 ```
 
+# Lasso model
 ```{r}
+<<<<<<< HEAD
 bestforward = function (data){
   response = data[1]
+=======
+library(glmnet)
+x = model.matrix(Cscore~.,prostate)[,-1]
+y = prostate$Cscore
+train=sample(1:nrow(x),nrow(x)/2)
+test=(-train)
+y.test=y[test]
+
+<<<<<<< HEAD
+grid=10^seq(10,-2,length=100) 
+lasso.model=glmnet(x[train,],y[train],alpha=1,lambda=grid, thresh = 1e-12)
+plot(lasso.model, label = TRUE)
+plot(lasso.model,xvar="lambda",label=TRUE)#behaviour coef plotted against log lambda
+plot(lasso.model,xvar="dev",label=TRUE)#behaviour coef plotted against percentage deviance explained
+
+cv.out=cv.glmnet(x[train,],y[train],alpha=1)
+plot(cv.out)
+bestlambda=cv.out$lambda.min
+lasso.pred=predict(lasso.model,s=bestlambda,newx=x[test,])
+mean((lasso.pred-y.test)^2)
+out=glmnet(x,y,alpha=1,lambda=grid)
+lasso.coef=predict(out,type="coefficients",s=bestlambda)[1:8,]
+lasso.coef
+
+```
+# Ridge regression
+
+```{r}
+library(glmnet)
+x = model.matrix(Cscore~.,prostate)[,-1]
+y = prostate$Cscore
+train=sample(1:nrow(x),nrow(x)/2)
+test=(-train)
+y.test=y[test]
+
+grid=10^seq(10,-2,length=100) 
+lasso.model=glmnet(x[train,],y[train],alpha=0,lambda=grid, thresh = 1e-12)
+plot(lasso.model, label = TRUE)
+plot(lasso.model,xvar="lambda",label=TRUE)#behaviour coef plotted against log lambda
+plot(lasso.model,xvar="dev",label=TRUE)#behaviour coef plotted against percentage deviance explained
+
+cv.out=cv.glmnet(x[train,],y[train],alpha=0)
+plot(cv.out)
+bestlambda=cv.out$lambda.min
+lasso.pred=predict(lasso.model,s=bestlambda,newx=x[test,])
+mean((lasso.pred-y.test)^2)
+out=glmnet(x,y,alpha=1,lambda=grid)
+lasso.coef=predict(out,type="coefficients",s=bestlambda)[1:8,]
+lasso.coef
+=======
+bestforward = function (response, data){
+>>>>>>> c863e17caadfce574002f6cfd6813ff4e7df9ca5
   bestModelList = vector(mode="list")
   p = length(names(data))
   k = 0:(p-2)
@@ -102,6 +156,7 @@ for (i in 1:10){
   itermodel = lm(Cscore~lpsa + svi1)
 }
 
+>>>>>>> 5dc7aa29847e31da8d69622d375d4dd2eb3df597
 ```
 
 

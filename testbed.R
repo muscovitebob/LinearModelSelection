@@ -1,5 +1,27 @@
 prostate =get(load("prostate2.rdata"))
 
+# forward_stepwise <- function(data){
+#   i_vector = c()
+#   lm_vector =c()
+#   for (j in 1:length(names(data))-1){
+#     rsq = 0
+#     best_predictor = NULL
+#     i_oneloop = 0
+#     for (i in 2:length(names(data))){
+#       if (!is.element(i,i_vector)){
+#         #Mki <- lm(Cscore~data[,i], data)
+#         Mki <- lm(as.formula(paste("Cscore~", paste(i_vector, collapse = "+", paste("+", paste(i))))))
+#         new_rsq = summary(Mki)$r.squared
+#         if (new_rsq > rsq){
+#           rsq = new_rsq
+#           best_predictor = Mki
+#           i_oneloop = i
+#         }
+#       }
+#     }
+#     append(i_vector, i_oneloop)
+#   }
+
 bestforward = function (data){
   response = data[1]
   bestModelList = vector(mode="list")
@@ -37,6 +59,14 @@ bestforward = function (data){
       } 
     
     # TODO: fix this so it selects the variables chosen and removes them correctly
+<<<<<<< HEAD:crappy code stuff.R
+    for (j in 1:length(toBeDiscarded)){
+      if (!is.na(-(match(toBeDiscarded, colnames(constructionData))[j]))){
+        constructionData  = constructionData[,-(match(toBeDiscarded, colnames(constructionData))[j])]
+      }
+    }
+=======
+>>>>>>> 5dc7aa29847e31da8d69622d375d4dd2eb3df597:testbed.R
   }
   
   #now that we have the best models of all Mk+1 subsets, pick the best best model
