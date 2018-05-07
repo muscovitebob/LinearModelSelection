@@ -7,6 +7,7 @@ output: html_notebook
 library(glmnet) # alpha = 0 is ridge, 1 is lasso
 library(pls)
 library(leaps)
+set.seed(10)
 prostate = get(load("prostate2.Rdata"))
 head(prostate)
 prostate$svi = as.factor(prostate$svi)
@@ -33,67 +34,22 @@ There are 97 data points, seven predictor variables and one response variable. T
 Let us try to select a model using forward stepwise selection.
 
 ```{r}
-fwd = regsubsets(Cscore~., data = prostate, nvmax = 10, method="forward")
+#split data into training and test subsets
+x = model.matrix(Cscore~.,prostate)[,-1]
+y = prostate$Cscore
+train=sample(1:nrow(x),nrow(x)/2)
+test=(-train)
+y.test=y[test]
+```
+
+
+```{r}
+fwd = regsubsets(Cscore~., data = prostate[train,], nvmax = 10, method="forward")
 summary(fwd)
 ```
 
-# Lasso model
 ```{r}
-<<<<<<< HEAD
 bestforward = function (data){
-  response = data[1]
-=======
-library(glmnet)
-x = model.matrix(Cscore~.,prostate)[,-1]
-y = prostate$Cscore
-train=sample(1:nrow(x),nrow(x)/2)
-test=(-train)
-y.test=y[test]
-
-<<<<<<< HEAD
-grid=10^seq(10,-2,length=100) 
-lasso.model=glmnet(x[train,],y[train],alpha=1,lambda=grid, thresh = 1e-12)
-plot(lasso.model, label = TRUE)
-plot(lasso.model,xvar="lambda",label=TRUE)#behaviour coef plotted against log lambda
-plot(lasso.model,xvar="dev",label=TRUE)#behaviour coef plotted against percentage deviance explained
-
-cv.out=cv.glmnet(x[train,],y[train],alpha=1)
-plot(cv.out)
-bestlambda=cv.out$lambda.min
-lasso.pred=predict(lasso.model,s=bestlambda,newx=x[test,])
-mean((lasso.pred-y.test)^2)
-out=glmnet(x,y,alpha=1,lambda=grid)
-lasso.coef=predict(out,type="coefficients",s=bestlambda)[1:8,]
-lasso.coef
-
-```
-# Ridge regression
-
-```{r}
-library(glmnet)
-x = model.matrix(Cscore~.,prostate)[,-1]
-y = prostate$Cscore
-train=sample(1:nrow(x),nrow(x)/2)
-test=(-train)
-y.test=y[test]
-
-grid=10^seq(10,-2,length=100) 
-lasso.model=glmnet(x[train,],y[train],alpha=0,lambda=grid, thresh = 1e-12)
-plot(lasso.model, label = TRUE)
-plot(lasso.model,xvar="lambda",label=TRUE)#behaviour coef plotted against log lambda
-plot(lasso.model,xvar="dev",label=TRUE)#behaviour coef plotted against percentage deviance explained
-
-cv.out=cv.glmnet(x[train,],y[train],alpha=0)
-plot(cv.out)
-bestlambda=cv.out$lambda.min
-lasso.pred=predict(lasso.model,s=bestlambda,newx=x[test,])
-mean((lasso.pred-y.test)^2)
-out=glmnet(x,y,alpha=1,lambda=grid)
-lasso.coef=predict(out,type="coefficients",s=bestlambda)[1:8,]
-lasso.coef
-=======
-bestforward = function (response, data){
->>>>>>> c863e17caadfce574002f6cfd6813ff4e7df9ca5
   bestModelList = vector(mode="list")
   p = length(names(data))
   k = 0:(p-2)
@@ -138,25 +94,80 @@ bestforward = function (response, data){
   return(bestModelList[[bestBICModelNumber]])
 }
 
-result = bestforward(prostate)
+result = bestforward(prostate[train,])
 result
 ```
-
-As can be seen, our self-implemented forward stepwise algorithm and the regsubsets function are in agreement on which variables best describe the data. Unlike the algorithm described, regsubsets select the best model for a given number of variables, but our found model agrees with the two variable model selected by regsubsets.
 
 
 # Lasso
 
-First we must choose an appropriate $\lambda$ parameter. We can do this using k-fold cross-validation, using the best model determined in the previous section.
+```{r}
+grid=10^seq(10,-2,length=100) 
+lasso.model=glmnet(x[train,],y[train],alpha=0,lambda=grid, thresh = 1e-12)
+OLS.model=glmnet(x[train,],y[train],alpha=0,lambda=0, thresh = 1e-12)
+plot(lasso.model, label = TRUE)
+plot(lasso.model,xvar="lambda",label=TRUE)#behaviour coef plotted against log lambda
+plot(lasso.model,xvar="dev",label=TRUE)#behaviour coef plotted against percentage deviance explained
+```
 
 ```{r}
-set.seed(10)
-cvError = vector(mode="list")
-for (i in 1:10){
-  itermodel = lm(Cscore~lpsa + svi1)
-}
-
->>>>>>> 5dc7aa29847e31da8d69622d375d4dd2eb3df597
+cv.lasso.out=cv.glmnet(x[train,],y[train],alpha=0)
+plot(cv.lasso.out)
 ```
+The best value of $\lambda$ will minimize both the mean squared error and the variance.
+
+```{r}
+bestlambda.lasso=cv.out$lambda.min
+out=glmnet(x,y,alpha=1,lambda=grid)
+
+lasso.pred = predict(lasso.model,s=bestlambda.lasso,newx=x[test,])
+lasso.mean = mean((lasso.pred-y.test)^2)
+lasso.coef = predict(out,type="coefficients",s=bestlambda.lasso)[1:8,]
+
+OLS.pred = predict(OLS.model, s=0, newx=x[test,])
+OLS.mean = mean((OLS.pred-y.test)^2)
+OLS.coef = predict(out, type="coefficients", s=0)[1:8,]
+
+lasso.coef
+OLS.coef
+```
+
+We can clearly see that Lasso zeroes out a large number of our variables, which is a massive reduction of complexity. Two of the variables agree with our previous best forward selection. Thus Lasso is clearly superior to ordinary least squares in this instance. The resulting Lasso model becomes:
+$$
+Cscore = `r lasso.coef[1]` + `r lasso.coef[6]` \times svi1 + `r lasso.coef[7]` \times lcp + `r lasso.coef[8]` \times lpsa
+$$
+
+# Ridge
+
+```{r}
+grid=10^seq(10,-2,length=100) 
+ridge.model=glmnet(x[train,],y[train],alpha=1,lambda=grid, thresh = 1e-12)
+OLS.model=glmnet(x[train,],y[train],alpha=1,lambda=0, thresh = 1e-12)
+plot(ridge.model, label = TRUE)
+plot(ridge.model,xvar="lambda",label=TRUE)#behaviour coef plotted against log lambda
+plot(ridge.model,xvar="dev",label=TRUE)#behaviour coef plotted against percentage deviance explained
+```
+
+```{r}
+cv.ridge.out=cv.glmnet(x[train,],y[train],alpha=1)
+plot(cv.ridge.out)
+```
+
+```{r}
+bestlambda.ridge=cv.ridge.out$lambda.min
+out=glmnet(x,y,alpha=1,lambda=grid)
+
+ridge.pred = predict(ridge.model,s=bestlambda.ridge,newx=x[test,])
+ridge.mean = mean((ridge.pred-y.test)^2)
+ridge.coef = predict(out,type="coefficients",s=bestlambda.ridge)[1:8,]
+
+OLS.pred = predict(OLS.model, s=0, newx=x[test,])
+OLS.mean = mean((OLS.pred-y.test)^2)
+OLS.coef = predict(out, type="coefficients", s=0)[1:8,]
+
+ridge.coef
+OLS.coef
+```
+
 
 
