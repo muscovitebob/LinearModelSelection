@@ -5,7 +5,7 @@ forward_stepwise <- function(data){
   #a list for all the predictors that have been used
   predictor_list = c()
   #the names of all the best models of each round of stepwise selection
-  models <- paste("Mk", 1:6, sep = "")
+  models <- paste("Mk", 1:7, sep = "")
   for (j in 1:(length(data_vars)-1)){ # -1 because Cscore is not a predictor
     rsq = 0
     best_predictor = NULL
