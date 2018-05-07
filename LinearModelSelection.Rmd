@@ -33,6 +33,46 @@ There are 97 data points, seven predictor variables and one response variable. T
 ```{r}
 fwd = regsubsets(Cscore~., data = prostate, nvmax = 10, method="forward")
 summary(fwd)
+
+bestforward = function (response, data){
+  bestModelList = vector(mode="list")
+  p = length(names(data))
+  k = 0:(p-1)
+  null = lm(response~1)
+  for (i in k){ #iterate over all variables
+    modellist = vector(mode="list")
+    for (j in 2:(p-k)){ #iterate over all Mk+1
+      
+      provFormulaString = paste(response, "~")
+      for (z in 2:j){#for the current Mk+1, create the model string
+        if (z == 2){
+          provFormulaString = paste(provFormulaString, names(data)[z])
+        } else {
+          provFormulaString = paste(provFormulaString, "+", names(data)[z])
+        }
+      }
+      itermodel = lm(as.formula(provFormulaString), data = data) #assigns the current Mk+1 this model
+      modellist[[j]] = itermodel #add this model to the candidate model list
+    }
+    
+    rSquaredList = vector(mode="list")
+    for (h in 1:length(modellist)){
+      rSquaredList = summary(modellist[[h]])$r.squared
+    }
+    bestModelNumber = which.max(rSquaredList)
+    bestModel = modellist[bestModelNumber]
+    bestModelList[[i]] = bestModel
+  }
+  
+  BICforModels = vector(mode="list")
+  for (h in 1:length(bestModelList)){
+    BICforModels[[h]] = BIC(bestModelList[[h]])
+  }
+  bestBICModelNumber = which.max(BICforModels)
+  return(bestModelList[[bestBICModelNumber]])
+}
+
+bestforward(Cscore, prostate)
 ```
 
 # Lasso model
@@ -44,7 +84,6 @@ train=sample(1:nrow(x),nrow(x)/2)
 test=(-train)
 y.test=y[test]
 
-<<<<<<< HEAD
 grid=10^seq(10,-2,length=100) 
 lasso.model=glmnet(x[train,],y[train],alpha=1,lambda=grid, thresh = 1e-12)
 plot(lasso.model, label = TRUE)
@@ -85,47 +124,46 @@ mean((lasso.pred-y.test)^2)
 out=glmnet(x,y,alpha=1,lambda=grid)
 lasso.coef=predict(out,type="coefficients",s=bestlambda)[1:8,]
 lasso.coef
-=======
-bestforward = function (response, data){
-  bestModelList = vector(mode="list")
-  p = length(names(data))
-  k = 0:(p-1)
-  null = lm(response~1)
-  for (i in k){ #iterate over all variables
-    modellist = vector(mode="list")
-    for (j in 2:(p-k)){ #iterate over all Mk+1
-      
-      provFormulaString = paste(response, "~")
-      for (z in 2:j){#for the current Mk+1, create the model string
-        if (z == 2){
-          provFormulaString = paste(provFormulaString, names(data)[z])
-        } else {
-          provFormulaString = paste(provFormulaString, "+", names(data)[z])
-        }
-      }
-      itermodel = lm(as.formula(provFormulaString), data = data) #assigns the current Mk+1 this model
-      modellist[[j]] = itermodel #add this model to the candidate model list
-    }
-    
-    rSquaredList = vector(mode="list")
-    for (h in 1:length(modellist)){
-      rSquaredList = summary(modellist[[h]])$r.squared
-    }
-    bestModelNumber = which.max(rSquaredList)
-    bestModel = modellist[bestModelNumber]
-    bestModelList[[i]] = bestModel
-  }
-  
-  BICforModels = vector(mode="list")
-  for (h in 1:length(bestModelList)){
-    BICforModels[[h]] = BIC(bestModelList[[h]])
-  }
-  bestBICModelNumber = which.max(BICforModels)
-  return(bestModelList[[bestBICModelNumber]])
-}
 
-bestforward(Cscore, prostate)
 
->>>>>>> 5dc7aa29847e31da8d69622d375d4dd2eb3df597
 ```
 
+# Principal Component Regression
+
+* How many principal components would you select for yout PCR model?
+
+We would select 3 principal components, because the mean squared error compared to the number of components is the lowest there. Of course, taking 7 principal components is still lower, beacause all portions of all variables are taken into account there. (see graph below) Also, 3 components already explain approximately 78% of the variation in the data.
+
+
+
+
+```{r}
+set.seed(10)
+pcr_model=pcr(Cscore~.,data=prostate,scale=TRUE,
+		validation="CV")
+summary(pcr_model)
+explvar(pcr_model) 
+plot(pcr_model, plottype = "scores", comps = 1:3)
+
+validationplot(pcr_model,val.type="MSEP") 
+
+plot(pcr_model, "loadings", comps = 1:3, legendpos = "topleft",labels = 1:3)
+abline(h = 0)
+
+pcr_model=pcr(Cscore~.,data=prostate,subset=train,scale=TRUE,
+		validation="CV")
+validationplot(pcr_model,val.type="MSEP") 
+coefplot(pcr_model)
+pcr_pred=predict(pcr_model,x[test,],ncomp=3)
+mean((pcr_pred-y.test)^2)
+pcr_model=pcr(y~x,scale=TRUE,ncomp=3)
+summary(pcr_model)
+linreg = lm(Cscore~., data = prostate[train,])
+lm_pred = predict(linreg, prostate[test,])
+mean((lm_pred-y.test)^2)
+
+```
+
+* How appropriate is PCR for this dataset?
+
+When we look at the analysis we did, we can certainly say that it is beneficial to use PCR for this dataset, since we can explain a lot of the variance with only 3 principal components. However, when we use cross-validation for our 3-PC model, we can see that the mean squared error of the PCR model is higher than the mean squared error of a normal linear regression model (see below). So, we do not think that PCR is really beneficial here. 
