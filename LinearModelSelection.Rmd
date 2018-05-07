@@ -7,11 +7,11 @@ output: html_notebook
 library(glmnet) # alpha = 0 is ridge, 1 is lasso
 library(pls)
 library(leaps)
+set.seed(10)
 prostate = get(load("prostate2.Rdata"))
-head(prostate)
 prostate$svi = as.factor(prostate$svi)
 summary(prostate)
-attach(prostate)
+invisible(attach(prostate))
 ```
 
 # Variable evaluation and comparison
@@ -30,6 +30,7 @@ There are 97 data points, seven predictor variables and one response variable. T
 
 # Forward stepwise selection
 
+<<<<<<< HEAD
 ```{r}
 fwd = regsubsets(Cscore~., data = prostate, nvmax = 10, method="forward")
 summary(fwd)
@@ -74,16 +75,20 @@ bestforward = function (response, data){
 
 bestforward(Cscore, prostate)
 ```
+=======
+Let us try to select a model using forward stepwise selection.
+>>>>>>> 4b8d21e39f3af459391b7aeaa223928ec7c23eb8
 
-# Lasso model
 ```{r}
-library(glmnet)
+#split data into training and test subsets
 x = model.matrix(Cscore~.,prostate)[,-1]
 y = prostate$Cscore
 train=sample(1:nrow(x),nrow(x)/2)
 test=(-train)
 y.test=y[test]
+```
 
+<<<<<<< HEAD
 grid=10^seq(10,-2,length=100) 
 lasso.model=glmnet(x[train,],y[train],alpha=1,lambda=grid, thresh = 1e-12)
 plot(lasso.model, label = TRUE)
@@ -98,11 +103,16 @@ mean((lasso.pred-y.test)^2)
 out=glmnet(x,y,alpha=1,lambda=grid)
 lasso.coef=predict(out,type="coefficients",s=bestlambda)[1:8,]
 lasso.coef
-
-```
-# Ridge regression
+=======
+>>>>>>> 4b8d21e39f3af459391b7aeaa223928ec7c23eb8
 
 ```{r}
+fwd = regsubsets(Cscore~., data = prostate[train,], nvmax = 10, method="forward")
+summary(fwd)
+```
+
+```{r}
+<<<<<<< HEAD
 library(glmnet)
 x = model.matrix(Cscore~.,prostate)[,-1]
 y = prostate$Cscore
@@ -167,3 +177,136 @@ mean((lm_pred-y.test)^2)
 * How appropriate is PCR for this dataset?
 
 When we look at the analysis we did, we can certainly say that it is beneficial to use PCR for this dataset, since we can explain a lot of the variance with only 3 principal components. However, when we use cross-validation for our 3-PC model, we can see that the mean squared error of the PCR model is higher than the mean squared error of a normal linear regression model (see below). So, we do not think that PCR is really beneficial here. 
+=======
+bestforward = function (data){
+  bestModelList = vector(mode="list")
+  p = length(names(data))
+  k = 0:(p-2)
+  nullmod = lm(as.matrix(data[1])~ 1, data = data)
+  predictorData = data
+  predictorData[,1] = NULL
+  bestModelList[[1]] = nullmod
+  constructionData = predictorData
+  for (i in k){ #iterate over all variables, starting with null model 0 and to p-1
+    # now we need to iterate as many times as there are unused variables to construct the candidate model matrix
+    modellist = vector(mode="list")
+    for (z in 1:length(names(constructionData))){
+      itermodel = update(bestModelList[[i + 1]], paste("~ . +", names(constructionData)[z]))
+      modellist[[z]] = itermodel
+      remove(itermodel)
+    }
+    
+    # select the best model out of this Mk+1 subset, picking the highest RSquared
+    rSquaredList = vector(mode="list")
+    for (h in 1:length(modellist)){
+      rSquaredList[h] = summary(modellist[[h]])$r.squared
+    }
+    bestModelNumber = which.max(rSquaredList)
+    bestModel = modellist[[bestModelNumber]]
+    bestModelList[[i+2]] = bestModel
+    #discard the variable used in the model from further use
+    #constructionData thus keeps track of which variables have been used up
+    toBeDiscarded = names(bestModel$coefficients)[-1]
+    constructionDataNamespace = names(constructionData)
+    variableInDiscardButNotInConstructionData = toBeDiscarded %in% constructionDataNamespace
+    toBeDiscarded = toBeDiscarded[variableInDiscardButNotInConstructionData]
+    if (length(toBeDiscarded) > 0){
+      constructionData = constructionData[,-match(toBeDiscarded, names(constructionData)), drop=F]
+      } 
+  }
+  #now that we have the best models of all Mk+1 subsets, pick the best best model via minimum BIC
+  BICforModels = vector(mode="list")
+  for (h in 1:length(bestModelList)){
+    BICforModels[h] = BIC(bestModelList[[h]])
+  }
+  bestBICModelNumber = which.min(BICforModels)
+  return(bestModelList[[bestBICModelNumber]])
+}
+
+result = bestforward(prostate[train,])
+result
+```
+
+# Lasso
+
+```{r}
+grid=10^seq(10,-2,length=100) 
+lasso.model=glmnet(x[train,],y[train],alpha=0,lambda=grid, thresh = 1e-12)
+OLS.model=glmnet(x[train,],y[train],alpha=0,lambda=0, thresh = 1e-12)
+plot(lasso.model, label = TRUE)
+plot(lasso.model,xvar="lambda",label=TRUE)#behaviour coef plotted against log lambda
+plot(lasso.model,xvar="dev",label=TRUE)#behaviour coef plotted against percentage deviance explained
+```
+
+```{r}
+cv.lasso.out=cv.glmnet(x[train,],y[train],alpha=0)
+plot(cv.lasso.out)
+```
+The best value of $\lambda$ will minimize both the mean squared error and the variance.
+
+```{r}
+bestlambda.lasso=cv.lasso.out$lambda.min
+out=glmnet(x,y,alpha=1,lambda=grid)
+
+lasso.pred = predict(lasso.model,s=bestlambda.lasso,newx=x[test,])
+lasso.mean = mean((lasso.pred-y.test)^2)
+lasso.coef = predict(out,type="coefficients",s=bestlambda.lasso)[1:8,]
+
+OLS.pred = predict(OLS.model, s=0, newx=x[test,])
+OLS.mean = mean((OLS.pred-y.test)^2)
+OLS.coef = predict(out, type="coefficients", s=0)[1:8,]
+
+lasso.coef
+OLS.coef
+```
+
+We can clearly see that Lasso zeroes out a large number of our variables, which is a massive reduction of complexity. Two of the variables agree with our previous best forward selection. Thus Lasso is clearly superior to ordinary least squares in this instance. The resulting Lasso model becomes:
+$$
+Cscore = `r lasso.coef[1]` + `r lasso.coef[6]` \times svi1 + `r lasso.coef[7]` \times lcp + `r lasso.coef[8]` \times lpsa
+$$
+
+# Ridge
+
+```{r}
+grid=10^seq(10,-2,length=100) 
+ridge.model=glmnet(x[train,],y[train],alpha=1,lambda=grid, thresh = 1e-12)
+OLS.model.ridge=glmnet(x[train,],y[train],alpha=1,lambda=0, thresh = 1e-12)
+plot(ridge.model, label = TRUE)
+plot(ridge.model,xvar="lambda",label=TRUE)#behaviour coef plotted against log lambda
+plot(ridge.model,xvar="dev",label=TRUE)#behaviour coef plotted against percentage deviance explained
+```
+
+```{r}
+cv.ridge.out=cv.glmnet(x[train,],y[train],alpha=1)
+plot(cv.ridge.out)
+bestlambda.ridge=cv.ridge.out$lambda.min
+```
+Lowest mean squared error here corresponds to lowest cross validation error. We can conclude that the best $\lambda$ value equals `r bestlambda.ridge`.
+
+
+```{r}
+bestlambda.ridge=cv.ridge.out$lambda.min
+out.ridge=glmnet(x,y,alpha=1,lambda=grid)
+
+ridge.pred = predict(ridge.model,s=bestlambda.ridge,newx=x[test,])
+ridge.mean = mean((ridge.pred-y.test)^2)
+ridge.coef = predict(out.ridge,type="coefficients",s=bestlambda.ridge)[1:8,]
+
+OLS.pred.ridge = predict(OLS.model.ridge, s=0, newx=x[test,])
+OLS.mean.ridge = mean((OLS.pred.ridge-y.test)^2)
+OLS.coef.ridge = predict(out.ridge, type="coefficients", s=0)[1:8,]
+
+ridge.coef
+OLS.coef
+
+ridge.mean
+OLS.mean.ridge
+```
+
+There is still a subsantial improvement over OLS in Ridge most coefficients are zeroed out. The resulting Ridge model is thus:
+
+$$
+Cscore = `r ridge.coef[1]` + `r ridge.coef[6]` \times svi1 + `r ridge.coef[7]` \times lcp + `r ridge.coef[8]` \times lpsa
+$$
+
+>>>>>>> 4b8d21e39f3af459391b7aeaa223928ec7c23eb8
