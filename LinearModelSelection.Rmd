@@ -9,10 +9,9 @@ library(pls)
 library(leaps)
 set.seed(10)
 prostate = get(load("prostate2.Rdata"))
-head(prostate)
 prostate$svi = as.factor(prostate$svi)
 summary(prostate)
-attach(prostate)
+invisible(attach(prostate))
 ```
 
 # Variable evaluation and comparison
@@ -98,7 +97,6 @@ result = bestforward(prostate[train,])
 result
 ```
 
-
 # Lasso
 
 ```{r}
@@ -117,7 +115,7 @@ plot(cv.lasso.out)
 The best value of $\lambda$ will minimize both the mean squared error and the variance.
 
 ```{r}
-bestlambda.lasso=cv.out$lambda.min
+bestlambda.lasso=cv.lasso.out$lambda.min
 out=glmnet(x,y,alpha=1,lambda=grid)
 
 lasso.pred = predict(lasso.model,s=bestlambda.lasso,newx=x[test,])
@@ -142,7 +140,7 @@ $$
 ```{r}
 grid=10^seq(10,-2,length=100) 
 ridge.model=glmnet(x[train,],y[train],alpha=1,lambda=grid, thresh = 1e-12)
-OLS.model=glmnet(x[train,],y[train],alpha=1,lambda=0, thresh = 1e-12)
+OLS.model.ridge=glmnet(x[train,],y[train],alpha=1,lambda=0, thresh = 1e-12)
 plot(ridge.model, label = TRUE)
 plot(ridge.model,xvar="lambda",label=TRUE)#behaviour coef plotted against log lambda
 plot(ridge.model,xvar="dev",label=TRUE)#behaviour coef plotted against percentage deviance explained
@@ -151,23 +149,33 @@ plot(ridge.model,xvar="dev",label=TRUE)#behaviour coef plotted against percentag
 ```{r}
 cv.ridge.out=cv.glmnet(x[train,],y[train],alpha=1)
 plot(cv.ridge.out)
+bestlambda.ridge=cv.ridge.out$lambda.min
 ```
+Lowest mean squared error here corresponds to lowest cross validation error. We can conclude that the best $\lambda$ value equals `r bestlambda.ridge`.
+
 
 ```{r}
 bestlambda.ridge=cv.ridge.out$lambda.min
-out=glmnet(x,y,alpha=1,lambda=grid)
+out.ridge=glmnet(x,y,alpha=1,lambda=grid)
 
 ridge.pred = predict(ridge.model,s=bestlambda.ridge,newx=x[test,])
 ridge.mean = mean((ridge.pred-y.test)^2)
-ridge.coef = predict(out,type="coefficients",s=bestlambda.ridge)[1:8,]
+ridge.coef = predict(out.ridge,type="coefficients",s=bestlambda.ridge)[1:8,]
 
-OLS.pred = predict(OLS.model, s=0, newx=x[test,])
-OLS.mean = mean((OLS.pred-y.test)^2)
-OLS.coef = predict(out, type="coefficients", s=0)[1:8,]
+OLS.pred.ridge = predict(OLS.model.ridge, s=0, newx=x[test,])
+OLS.mean.ridge = mean((OLS.pred.ridge-y.test)^2)
+OLS.coef.ridge = predict(out.ridge, type="coefficients", s=0)[1:8,]
 
 ridge.coef
 OLS.coef
+
+ridge.mean
+OLS.mean.ridge
 ```
 
+There is still a subsantial improvement over OLS in Ridge most coefficients are zeroed out. The resulting Ridge model is thus:
 
+$$
+Cscore = `r ridge.coef[1]` + `r ridge.coef[6]` \times svi1 + `r ridge.coef[7]` \times lcp + `r ridge.coef[8]` \times lpsa
+$$
 
