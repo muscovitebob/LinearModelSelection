@@ -1,48 +1,41 @@
 ---
-title: "Linear model selection"
-output: html_notebook
+title: "Assignment 1: Linear model selection"
+author: Thomas Vanpoucke, Boris Shilov
+output: 
+  bookdown::pdf_document2:
+    number_sections: true
 ---
 
-
-```{r}
+```{r include=FALSE}
 library(glmnet) 
 library(pls)
 library(leaps)
 set.seed(10)
 prostate = get(load("prostate2.Rdata"))
 prostate$svi = as.factor(prostate$svi)
-invisible(attach(prostate))
+attach(prostate)
+options(digits=3)
 ```
 
 # Variable comparison and evaluation
 
-There are 97 data points, seven predictor variables and one response variable, Cscore. There is one categorical variable with 2 possible options, svi. Looking at the scatterplots below, there seem to be positive correlations between Cscore and lpsa as well as lcavol and lpsa.
+There are 97 data points, seven predictor variables and one response variable, Cscore. There is one binary variable, svi. Looking at the scatterplots below, there seem to be a few strong positive correlations present, such as those between Cscore and lpsa as well as lcavol and lpsa.
 
-Also, when looking at the first data points, we noticed that there were some numbers that recurred a lot, more specifically within the lbph and lcp predictor variables.
+When looking at the first data points, we noticed that there were some recurring numbers, specifically within the lbph and lcp predictor variables.
 
 
 ```{r}
-head(prostate)
 summary(prostate)
 plot(prostate)
 ```
 
 
-```{r}
-plot(prostate$Cscore, prostate$lweight)
-```
-
 
 # Forward stepwise selection
 
-We implemented algorithm 6.2 ourselves using the R code below. To choose which parameter to add in one round of forward stepwise selection, we used the model with the highest R squared value, as per the algorithm. To select the single best model, we used BIC.
+We implemented algorithm 6.2 for forward stepwise selection. To choose which parameter to add in one round of forward stepwise selection, we used the model with the highest $R^2$ value, as per the algorithm. To select the single best model, we used BIC. The entire function code can be found in the source file for this document.
 
-The model returned by our algorithm was the model with only two predictor variables, lpsa and svi.
-$$
-Cscore  =  -36.98 + 29.81 \times svi + 26.90 \times lpsa
-$$
-
-```{r}
+```{r echo = FALSE}
 forward_stepwise <- function(data){
   data_vars = names(data)
   #a list for all the predictors that have been used
@@ -87,12 +80,20 @@ forward_stepwise <- function(data){
 
 result = forward_stepwise(prostate)
 result
+<<<<<<< HEAD
 summary(result)
+=======
+>>>>>>> 2a235378a62cc84e81624c576ab264a45532ece1
 ```
+
+Thus, the model returned by our algorithm as the best was one with only two predictor variables, lpsa and svi.
+$$
+Cscore  =  `r result$coefficients[1]` + `r result$coefficients[2]` \times lpsa + `r result$coefficients[3]` \times svi1 
+$$
 
 # Lasso
 
-To do a cross-validated lasso and ridge, we first split up the dataset into two pieces, a training and a test dataset. We made a model, based on the training data, that was crossvalidated within this training data. The test dataset was then used to check the mean squared test error for the best lambda (= lowest mean squared training error). To finish off, we used the entire dataset and the best lambda value to construct our lasso model.
+To do a cross-validated lasso and ridge, we first split up the dataset into two pieces, a training and a test dataset. We made a model, based on the training data, that was crossvalidated within this training data. The test dataset was then used to check the mean squared test error for the best lambda (which is the lowest mean squared training error). To finish off, we used the entire dataset and the best lambda value to construct our lasso model.
 
 ```{r}
 x = model.matrix(Cscore~.,prostate)[,-1]
@@ -105,17 +106,6 @@ grid=10^seq(10,-2,length=100)
 lasso.model=glmnet(x[train,],y[train],alpha=1,lambda=grid, thresh = 1e-12)
 plot(lasso.model, label = TRUE)
 plot(lasso.model,xvar="lambda",label=TRUE)
-
-cv.out=cv.glmnet(x[train,],y[train],alpha=1)
-plot(cv.out)
-bestlambda=cv.out$lambda.min
-lasso.pred=predict(lasso.model,s=bestlambda,newx=x[test,])
-mean((lasso.pred-y.test)^2)
-out=glmnet(x,y,alpha=1,lambda=grid)
-lasso.coef=predict(out,type="coefficients",s=bestlambda)[1:8,]
-lasso.coef
-
-
 ```
 
 
@@ -131,7 +121,7 @@ plot(lasso.model, label = TRUE)
 cv.lasso.out=cv.glmnet(x[train,],y[train],alpha=1)
 plot(cv.lasso.out)
 ```
-The best value of $\lambda$ will minimize both the mean squared error and the variance.
+
 
 ```{r}
 bestlambda.lasso=cv.lasso.out$lambda.min
@@ -187,14 +177,14 @@ OLS.pred.ridge = predict(OLS.model.ridge, s=0, newx=x[test,])
 OLS.mean.ridge = mean((OLS.pred.ridge-y.test)^2)
 OLS.coef.ridge = predict(out.ridge, type="coefficients", s=0)[1:8,]
 
-ridge.coef
-OLS.coef
-
 ridge.mean
 OLS.mean.ridge
+
+ridge.coef
+OLS.coef
 ```
 
-There is still a subsantial improvement over OLS in Ridge most coefficients are zeroed out. The resulting Ridge model is thus:
+There is still a subsantial improvement over OLS in Ridge as most coefficients are zeroed out. The resulting Ridge model is thus:
 
 $$
 Cscore = `r ridge.coef[1]` + `r ridge.coef[6]` \times svi1 + `r ridge.coef[7]` \times lcp + `r ridge.coef[8]` \times lpsa
@@ -202,12 +192,9 @@ $$
 
 # Principal Component Regression
 
-* How many principal components would you select for yout PCR model?
+## How many principal components would you select for yout PCR model?
 
-We would select 3 principal components, because the mean squared error compared to the number of components is the lowest there. Of course, taking 7 principal components is still lower, beacause all portions of all variables are taken into account there. (see graph below) Also, 3 components already explain approximately 78% of the variation in the data.
-
-
-
+We would select three principal components, because the mean squared error compared to the number of components is the lowest there. Of course, taking seven principal components is still lower, since then we practically account for all variable. Also, three components already explain approximately 78% of the variation in the data.
 
 ```{r}
 set.seed(10)
@@ -235,8 +222,9 @@ OLS.mean
 
 ```
 
-* How appropriate is PCR for this dataset?
+## How appropriate is PCR for this dataset?
 
+<<<<<<< HEAD
 When we look at the analysis we did, we can certainly say that there is some benefit to use PCR for this dataset, since we can explain a lot of the variance with only 3 principal components. However, when we use cross-validation for our 3-PC model, we can see that the test error of the PCR model is higher than the mean squared error of a normal linear regression model (see above). So, we do not think that PCR is really beneficial here. 
 
 
@@ -272,5 +260,10 @@ pcr.mean
 the shown values are the test errors for a normal OLS model, forward stepwise prediction, lasso, ridge and PCR respectively. As we can see, only the lasso and ridge test error are under the OLS test error, and ridge is still slightly lower than lasso. This leads us to conclude that our ridge model is the most appropriate model for this dataset.
 
 The reason that PCR
+=======
+When we look at the analysis we did, we can certainly say that it is beneficial to use PCR for this dataset, since we can explain a lot of the variance with only 3 principal components. However, when we use cross-validation for our 3-PC model, we can see that the mean squared error of the PCR model is higher than the mean squared error of a normal linear regression model (see below). So, we do not think that PCR is really beneficial here. 
+
+# Model comparison
+>>>>>>> 2a235378a62cc84e81624c576ab264a45532ece1
 
 
