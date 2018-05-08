@@ -1,18 +1,24 @@
 ---
 title: "Linear model selection"
-output: html_notebook
+author: Thomas Vanpoucke, Boris Shilov
+output: 
+  bookdown::pdf_document2:
+    number_sections: true
 ---
 
-```{r}
+```{r echo=FALSE}
 library(glmnet) # alpha = 0 is ridge, 1 is lasso
 library(pls)
 library(leaps)
 set.seed(10)
 prostate = get(load("prostate2.Rdata"))
 prostate$svi = as.factor(prostate$svi)
-summary(prostate)
-invisible(attach(prostate))
+attach(prostate)
 ```
+```{r}
+summary(prostate)
+```
+
 
 # Variable evaluation and comparison
 
@@ -21,16 +27,12 @@ plot(prostate)
 ```
 
 
-```{r}
-plot(prostate$Cscore, prostate$lweight)
-```
-
-There are 97 data points, seven predictor variables and one response variable. There seem to be positive correlations between Cscore and lpsa as well as lcavol and lpsa.
+There are 97 data points, seven predictor variables and one response variable. There seem to be strong positive correlations present in the dataset, such as those between Cscore and lpsa as well as lcavol and lpsa.
 
 
 # Forward stepwise selection
 
-Let us try to select a model using forward stepwise selection.
+Let us select a model using forward stepwise selection.
 
 ```{r}
 #split data into training and test subsets
@@ -43,59 +45,47 @@ y.test=y[test]
 
 
 ```{r}
-fwd = regsubsets(Cscore~., data = prostate[train,], nvmax = 10, method="forward")
-summary(fwd)
-```
-
-```{r}
-bestforward = function (data){
-  bestModelList = vector(mode="list")
-  p = length(names(data))
-  k = 0:(p-2)
-  nullmod = lm(as.matrix(data[1])~ 1, data = data)
-  predictorData = data
-  predictorData[,1] = NULL
-  bestModelList[[1]] = nullmod
-  constructionData = predictorData
-  for (i in k){ #iterate over all variables, starting with null model 0 and to p-1
-    # now we need to iterate as many times as there are unused variables to construct the candidate model matrix
-    modellist = vector(mode="list")
-    for (z in 1:length(names(constructionData))){
-      itermodel = update(bestModelList[[i + 1]], paste("~ . +", names(constructionData)[z]))
-      modellist[[z]] = itermodel
-      remove(itermodel)
-    }
+forward_stepwise <- function(data){
+  data_vars = names(data)
+  predictor_list = c()
+  models <- paste("Mk", 1:6, sep = "")
+  for (j in 1:(length(data_vars)-1)){ # -1 because Cscore is not a predictor
+    rsq = 0
+    best_predictor = NULL
+    best_model = NULL
+    name = paste("Mk",j, sep = "")
     
-    # select the best model out of this Mk+1 subset, picking the highest RSquared
-    rSquaredList = vector(mode="list")
-    for (h in 1:length(modellist)){
-      rSquaredList[h] = summary(modellist[[h]])$r.squared
+    for (i in 2:length(data_vars)){ #Cscore is 1, the response variable
+      if (!is.element(data_vars[i],predictor_list)){
+        Mki <- lm(paste(data_vars[1], "~", paste(predictor_list, collapse = "+", "+",paste(data_vars[i]))), data = data)
+        new_rsq = summary(Mki)$r.squared
+        if (new_rsq > rsq){
+          rsq = new_rsq
+          best_predictor = data_vars[i]
+          assign(name, Mki)
+        }
+      }
     }
-    bestModelNumber = which.max(rSquaredList)
-    bestModel = modellist[[bestModelNumber]]
-    bestModelList[[i+2]] = bestModel
-    #discard the variable used in the model from further use
-    #constructionData thus keeps track of which variables have been used up
-    toBeDiscarded = names(bestModel$coefficients)[-1]
-    constructionDataNamespace = names(constructionData)
-    variableInDiscardButNotInConstructionData = toBeDiscarded %in% constructionDataNamespace
-    toBeDiscarded = toBeDiscarded[variableInDiscardButNotInConstructionData]
-    if (length(toBeDiscarded) > 0){
-      constructionData = constructionData[,-match(toBeDiscarded, names(constructionData)), drop=F]
-      } 
+    predictor_list <- c(predictor_list, best_predictor)
   }
-  #now that we have the best models of all Mk+1 subsets, pick the best best model via minimum BIC
-  BICforModels = vector(mode="list")
-  for (h in 1:length(bestModelList)){
-    BICforModels[h] = BIC(bestModelList[[h]])
+  model_list <- lapply(models, function(x)get(x))
+  
+  BIC_models = c()
+  for (h in 1:length(model_list)){
+    BIC_models = c(BIC_models,BIC(model_list[[h]]))
   }
-  bestBICModelNumber = which.min(BICforModels)
-  return(bestModelList[[bestBICModelNumber]])
+  best_model_nr = which.min(BIC_models)
+  return(model_list[[best_model_nr]])
 }
 
-result = bestforward(prostate[train,])
+result = forward_stepwise(prostate)
 result
 ```
+
+Using forward stepwise selection, the best model appears to be one incorporating lpsa and svi1 at terms. The best model as determined by BIC is then of the form:
+$$
+Cscore = 
+$$
 
 # Lasso
 
@@ -173,7 +163,7 @@ ridge.mean
 OLS.mean.ridge
 ```
 
-There is still a subsantial improvement over OLS in Ridge most coefficients are zeroed out. The resulting Ridge model is thus:
+There is still a subsantial improvement over OLS in Ridge as most coefficients are zeroed out. The resulting Ridge model is thus:
 
 $$
 Cscore = `r ridge.coef[1]` + `r ridge.coef[6]` \times svi1 + `r ridge.coef[7]` \times lcp + `r ridge.coef[8]` \times lpsa
