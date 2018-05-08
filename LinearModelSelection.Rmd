@@ -25,6 +25,7 @@ When looking at the first data points, we noticed that there were some recurring
 
 
 ```{r}
+head(prostate)
 summary(prostate)
 plot(prostate)
 ```
@@ -80,10 +81,9 @@ forward_stepwise <- function(data){
 
 result = forward_stepwise(prostate)
 result
-<<<<<<< HEAD
+
 summary(result)
-=======
->>>>>>> 2a235378a62cc84e81624c576ab264a45532ece1
+
 ```
 
 Thus, the model returned by our algorithm as the best was one with only two predictor variables, lpsa and svi.
@@ -153,8 +153,8 @@ grid=10^seq(10,-2,length=100)
 ridge.model=glmnet(x[train,],y[train],alpha=0,lambda=grid, thresh = 1e-12)
 OLS.model.ridge=glmnet(x[train,],y[train],alpha=0,lambda=0, thresh = 1e-12)
 plot(ridge.model, label = TRUE)
-plot(ridge.model,xvar="lambda",label=TRUE)#behaviour coef plotted against log lambda
-plot(ridge.model,xvar="dev",label=TRUE)#behaviour coef plotted against percentage deviance explained
+plot(ridge.model,xvar="lambda",label=TRUE)
+plot(ridge.model,xvar="dev",label=TRUE)
 ```
 
 ```{r}
@@ -224,26 +224,25 @@ OLS.mean
 
 ## How appropriate is PCR for this dataset?
 
-<<<<<<< HEAD
 When we look at the analysis we did, we can certainly say that there is some benefit to use PCR for this dataset, since we can explain a lot of the variance with only 3 principal components. However, when we use cross-validation for our 3-PC model, we can see that the test error of the PCR model is higher than the mean squared error of a normal linear regression model (see above). So, we do not think that PCR is really beneficial here. 
 
 
-#Comparison of all models
+#Model Comparison
 
-*How well do they perform in general?
+##How well do they perform in general?
 
 In general, the models perform quite good, but not super.
 
-*Do they yield similar models?
+##Do they yield similar models?
 
 Yes, for the most part, the same variables get included. However, the coefficients differ from model to model. PCR is the only outlier, since there is no variable selection going on.
 
-*Which variables are the most important in the prediction of the progression of prostate cancer, according to each model?
+##Which variables are the most important in the prediction of the progression of prostate cancer, according to each model?
 
-The forward stepwise, Lasso and Ridge model all seem to indicate svi and lpsa are important. Lasso also indicates some influence of lcp.
+The forward stepwise, Lasso and Ridge model all seem to indicate svi and lpsa are important. Lasso and Ridge also indicates some influence of lcp.
 For PCR, it is a bit harder to say which variable is the most important, since every principal component has loadings of all the variables. We looked at the highest loadings of the first principal component to determine which variables are important according to PCR. In our case, those variables are approximately the 1st, 5th, 6th and 7th, which correspond to lcavol, svi, lcp and lpsa respectively. (see variable loading graph in the PCR part)
 
-*Which model do you think is the most appropriate for this dataset?
+##Which model do you think is the most appropriate for this dataset?
 
 We selected the best model based on the test error. For this to make sense, we needed to remake the forward stepwise model with only the training data first. 
 ```{r}
@@ -257,13 +256,4 @@ ridge.mean
 pcr.mean
 ```
 
-the shown values are the test errors for a normal OLS model, forward stepwise prediction, lasso, ridge and PCR respectively. As we can see, only the lasso and ridge test error are under the OLS test error, and ridge is still slightly lower than lasso. This leads us to conclude that our ridge model is the most appropriate model for this dataset.
-
-The reason that PCR
-=======
-When we look at the analysis we did, we can certainly say that it is beneficial to use PCR for this dataset, since we can explain a lot of the variance with only 3 principal components. However, when we use cross-validation for our 3-PC model, we can see that the mean squared error of the PCR model is higher than the mean squared error of a normal linear regression model (see below). So, we do not think that PCR is really beneficial here. 
-
-# Model comparison
->>>>>>> 2a235378a62cc84e81624c576ab264a45532ece1
-
-
+The shown values are the test errors for a normal OLS model, forward stepwise prediction, lasso, ridge and PCR respectively. As we can see, only the lasso and ridge test error are under the OLS test error, and lasso is still slightly lower than ridge. This leads us to conclude that our lasso model is the most appropriate model for this dataset.
