@@ -92,6 +92,8 @@ result
 
 # Lasso
 
+To do a cross-validated lasso and ridge, we first split up the dataset into two pieces, a training and a test dataset. We made a model, based on the training data, that was crossvalidated within this training data. The test dataset was then used to check the mean squared test error for the best lambda (= lowest mean squared training error). To finish off, we used the entire dataset and the best lambda value to construct our lasso model.
+
 ```{r}
 x = model.matrix(Cscore~.,prostate)[,-1]
 y = prostate$Cscore
@@ -102,7 +104,7 @@ y.test=y[test]
 grid=10^seq(10,-2,length=100) 
 lasso.model=glmnet(x[train,],y[train],alpha=1,lambda=grid, thresh = 1e-12)
 plot(lasso.model, label = TRUE)
-plot(lasso.model,xvar="lambda",label=TRUE)#behaviour coef plotted against log lambda
+plot(lasso.model,xvar="lambda",label=TRUE)
 
 cv.out=cv.glmnet(x[train,],y[train],alpha=1)
 plot(cv.out)
@@ -120,13 +122,13 @@ lasso.coef
 
 
 ```{r}
-lasso.model=glmnet(x[train,],y[train],alpha=0,lambda=grid, thresh = 1e-12)
-OLS.model=glmnet(x[train,],y[train],alpha=0,lambda=0, thresh = 1e-12)
+lasso.model=glmnet(x[train,],y[train],alpha=1,lambda=grid, thresh = 1e-12)
+OLS.model=glmnet(x[train,],y[train],alpha=1,lambda=0, thresh = 1e-12)
 plot(lasso.model, label = TRUE)
 ```
 
 ```{r}
-cv.lasso.out=cv.glmnet(x[train,],y[train],alpha=0)
+cv.lasso.out=cv.glmnet(x[train,],y[train],alpha=1)
 plot(cv.lasso.out)
 ```
 The best value of $\lambda$ will minimize both the mean squared error and the variance.
@@ -143,6 +145,8 @@ OLS.pred = predict(OLS.model, s=0, newx=x[test,])
 OLS.mean = mean((OLS.pred-y.test)^2)
 OLS.coef = predict(out, type="coefficients", s=0)[1:8,]
 
+lasso.mean
+OLS.mean
 lasso.coef
 OLS.coef
 ```
