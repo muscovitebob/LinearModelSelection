@@ -6,13 +6,20 @@ output:
     number_sections: true
 ---
 
+<<<<<<< HEAD
 ```{r echo=FALSE}
 library(glmnet) # alpha = 0 is ridge, 1 is lasso
+=======
+
+```{r}
+library(glmnet) 
+>>>>>>> 8e3f26979d6a44e6bb0da61ac00982e7ac1fc543
 library(pls)
 library(leaps)
 set.seed(10)
 prostate = get(load("prostate2.Rdata"))
 prostate$svi = as.factor(prostate$svi)
+<<<<<<< HEAD
 attach(prostate)
 ```
 ```{r}
@@ -21,17 +28,37 @@ summary(prostate)
 
 
 # Variable evaluation and comparison
+=======
+invisible(attach(prostate))
+```
+
+# Variable comparison and evaluation
+
+There are 97 data points, seven predictor variables and one response variable, Cscore. There is one categorical variable with 2 possible options, svi. Looking at the scatterplots below, there seem to be positive correlations between Cscore and lpsa as well as lcavol and lpsa.
+
+Also, when looking at the first data points, we noticed that there were some numbers that recurred a lot, more specifically within the lbph and lcp predictor variables.
+
+>>>>>>> 8e3f26979d6a44e6bb0da61ac00982e7ac1fc543
 
 ```{r}
+head(prostate)
+summary(prostate)
 plot(prostate)
 ```
 
 
+<<<<<<< HEAD
 There are 97 data points, seven predictor variables and one response variable. There seem to be strong positive correlations present in the dataset, such as those between Cscore and lpsa as well as lcavol and lpsa.
+=======
+```{r}
+plot(prostate$Cscore, prostate$lweight)
+```
+>>>>>>> 8e3f26979d6a44e6bb0da61ac00982e7ac1fc543
 
 
 # Forward stepwise selection
 
+<<<<<<< HEAD
 Let us select a model using forward stepwise selection.
 
 ```{r}
@@ -43,22 +70,49 @@ test=(-train)
 y.test=y[test]
 ```
 
+=======
+We implemented algorithm 6.2 ourselves using the R code below. To choose which parameter to add in one round of forward stepwise selection, we used the model with the highest R squared value, as per the algorithm. To select the single best model, we used BIC.
+
+The model returned by our algorithm was the model with only two predictor variables, lpsa and svi.
+$$
+Cscore  =  -36.98 + 29.81 \times svi + 26.90 \times lpsa
+$$
+>>>>>>> 8e3f26979d6a44e6bb0da61ac00982e7ac1fc543
 
 ```{r}
 forward_stepwise <- function(data){
   data_vars = names(data)
+<<<<<<< HEAD
   predictor_list = c()
   models <- paste("Mk", 1:6, sep = "")
+=======
+  #a list for all the predictors that have been used
+  predictor_list = c()
+  #the names of all the best models of each round of stepwise selection
+  models <- paste("Mk", 1:7, sep = "")
+>>>>>>> 8e3f26979d6a44e6bb0da61ac00982e7ac1fc543
   for (j in 1:(length(data_vars)-1)){ # -1 because Cscore is not a predictor
     rsq = 0
     best_predictor = NULL
     best_model = NULL
+<<<<<<< HEAD
     name = paste("Mk",j, sep = "")
     
     for (i in 2:length(data_vars)){ #Cscore is 1, the response variable
       if (!is.element(data_vars[i],predictor_list)){
         Mki <- lm(paste(data_vars[1], "~", paste(predictor_list, collapse = "+", "+",paste(data_vars[i]))), data = data)
         new_rsq = summary(Mki)$r.squared
+=======
+    name = paste("Mk",j, sep = "") 
+    
+    for (i in 2:length(data_vars)){ # the loop starts from 2, because Cscore, the response variable, is 1    
+      if (!is.element(data_vars[i],predictor_list)){
+        #paste the function Cscore~(all the variables from the previous round) + this variable
+        Mki <- lm(paste(data_vars[1], "~", paste(predictor_list, collapse = "+", "+",paste(data_vars[i]))), data = data)
+        new_rsq = summary(Mki)$r.squared
+        #if this model is better(higher r square) than the previously selected model this round, 
+        #make this the selected variable
+>>>>>>> 8e3f26979d6a44e6bb0da61ac00982e7ac1fc543
         if (new_rsq > rsq){
           rsq = new_rsq
           best_predictor = data_vars[i]
@@ -66,20 +120,36 @@ forward_stepwise <- function(data){
         }
       }
     }
+<<<<<<< HEAD
     predictor_list <- c(predictor_list, best_predictor)
   }
   model_list <- lapply(models, function(x)get(x))
   
   BIC_models = c()
+=======
+    #append the selected variable of this round to the list of used predictor variables
+    predictor_list <- c(predictor_list, best_predictor)
+  }
+  # based on the list of all the model names, get all the forward stepwise models in a list
+  model_list <- lapply(models, function(x)get(x))
+  
+  BIC_models = c()
+  #get a BIC value for every forward stepwise model
+>>>>>>> 8e3f26979d6a44e6bb0da61ac00982e7ac1fc543
   for (h in 1:length(model_list)){
     BIC_models = c(BIC_models,BIC(model_list[[h]]))
   }
   best_model_nr = which.min(BIC_models)
+<<<<<<< HEAD
+=======
+  #return the model with the lowest BIC
+>>>>>>> 8e3f26979d6a44e6bb0da61ac00982e7ac1fc543
   return(model_list[[best_model_nr]])
 }
 
 result = forward_stepwise(prostate)
 result
+
 ```
 
 Using forward stepwise selection, the best model appears to be one incorporating lpsa and svi1 at terms. The best model as determined by BIC is then of the form:
@@ -89,17 +159,43 @@ $$
 
 # Lasso
 
+To do a cross-validated lasso and ridge, we first split up the dataset into two pieces, a training and a test dataset. We made a model, based on the training data, that was crossvalidated within this training data. The test dataset was then used to check the mean squared test error for the best lambda (= lowest mean squared training error). To finish off, we used the entire dataset and the best lambda value to construct our lasso model.
+
 ```{r}
+x = model.matrix(Cscore~.,prostate)[,-1]
+y = prostate$Cscore
+train=sample(1:nrow(x),nrow(x)/2)
+test=(-train)
+y.test=y[test]
+
 grid=10^seq(10,-2,length=100) 
-lasso.model=glmnet(x[train,],y[train],alpha=0,lambda=grid, thresh = 1e-12)
-OLS.model=glmnet(x[train,],y[train],alpha=0,lambda=0, thresh = 1e-12)
+lasso.model=glmnet(x[train,],y[train],alpha=1,lambda=grid, thresh = 1e-12)
 plot(lasso.model, label = TRUE)
-plot(lasso.model,xvar="lambda",label=TRUE)#behaviour coef plotted against log lambda
-plot(lasso.model,xvar="dev",label=TRUE)#behaviour coef plotted against percentage deviance explained
+plot(lasso.model,xvar="lambda",label=TRUE)
+
+cv.out=cv.glmnet(x[train,],y[train],alpha=1)
+plot(cv.out)
+bestlambda=cv.out$lambda.min
+lasso.pred=predict(lasso.model,s=bestlambda,newx=x[test,])
+mean((lasso.pred-y.test)^2)
+out=glmnet(x,y,alpha=1,lambda=grid)
+lasso.coef=predict(out,type="coefficients",s=bestlambda)[1:8,]
+lasso.coef
+
+
+```
+
+
+
+
+```{r}
+lasso.model=glmnet(x[train,],y[train],alpha=1,lambda=grid, thresh = 1e-12)
+OLS.model=glmnet(x[train,],y[train],alpha=1,lambda=0, thresh = 1e-12)
+plot(lasso.model, label = TRUE)
 ```
 
 ```{r}
-cv.lasso.out=cv.glmnet(x[train,],y[train],alpha=0)
+cv.lasso.out=cv.glmnet(x[train,],y[train],alpha=1)
 plot(cv.lasso.out)
 ```
 The best value of $\lambda$ will minimize both the mean squared error and the variance.
@@ -116,6 +212,8 @@ OLS.pred = predict(OLS.model, s=0, newx=x[test,])
 OLS.mean = mean((OLS.pred-y.test)^2)
 OLS.coef = predict(out, type="coefficients", s=0)[1:8,]
 
+lasso.mean
+OLS.mean
 lasso.coef
 OLS.coef
 ```
@@ -129,15 +227,15 @@ $$
 
 ```{r}
 grid=10^seq(10,-2,length=100) 
-ridge.model=glmnet(x[train,],y[train],alpha=1,lambda=grid, thresh = 1e-12)
-OLS.model.ridge=glmnet(x[train,],y[train],alpha=1,lambda=0, thresh = 1e-12)
+ridge.model=glmnet(x[train,],y[train],alpha=0,lambda=grid, thresh = 1e-12)
+OLS.model.ridge=glmnet(x[train,],y[train],alpha=0,lambda=0, thresh = 1e-12)
 plot(ridge.model, label = TRUE)
 plot(ridge.model,xvar="lambda",label=TRUE)#behaviour coef plotted against log lambda
 plot(ridge.model,xvar="dev",label=TRUE)#behaviour coef plotted against percentage deviance explained
 ```
 
 ```{r}
-cv.ridge.out=cv.glmnet(x[train,],y[train],alpha=1)
+cv.ridge.out=cv.glmnet(x[train,],y[train],alpha=0)
 plot(cv.ridge.out)
 bestlambda.ridge=cv.ridge.out$lambda.min
 ```
@@ -169,3 +267,42 @@ $$
 Cscore = `r ridge.coef[1]` + `r ridge.coef[6]` \times svi1 + `r ridge.coef[7]` \times lcp + `r ridge.coef[8]` \times lpsa
 $$
 
+# Principal Component Regression
+
+* How many principal components would you select for yout PCR model?
+
+We would select 3 principal components, because the mean squared error compared to the number of components is the lowest there. Of course, taking 7 principal components is still lower, beacause all portions of all variables are taken into account there. (see graph below) Also, 3 components already explain approximately 78% of the variation in the data.
+
+
+
+
+```{r}
+set.seed(10)
+pcr_model=pcr(Cscore~.,data=prostate,scale=TRUE,
+		validation="CV")
+summary(pcr_model)
+explvar(pcr_model) 
+plot(pcr_model, plottype = "scores", comps = 1:3)
+
+validationplot(pcr_model,val.type="MSEP") 
+
+plot(pcr_model, "loadings", comps = 1:3, legendpos = "topleft",labels = 1:3)
+abline(h = 0)
+
+pcr_model=pcr(Cscore~.,data=prostate,subset=train,scale=TRUE,
+		validation="CV")
+validationplot(pcr_model,val.type="MSEP") 
+coefplot(pcr_model)
+pcr_pred=predict(pcr_model,x[test,],ncomp=3)
+mean((pcr_pred-y.test)^2)
+pcr_model=pcr(y~x,scale=TRUE,ncomp=3)
+summary(pcr_model)
+linreg = lm(Cscore~., data = prostate[train,])
+lm_pred = predict(linreg, prostate[test,], type="response")
+mean((lm_pred-y.test)^2)
+
+```
+
+* How appropriate is PCR for this dataset?
+
+When we look at the analysis we did, we can certainly say that it is beneficial to use PCR for this dataset, since we can explain a lot of the variance with only 3 principal components. However, when we use cross-validation for our 3-PC model, we can see that the mean squared error of the PCR model is higher than the mean squared error of a normal linear regression model (see below). So, we do not think that PCR is really beneficial here. 
