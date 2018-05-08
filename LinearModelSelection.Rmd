@@ -190,7 +190,7 @@ $$
 
 ## How many principal components would you select for yout PCR model?
 
-We would select 3 principal components, because the mean squared error compared to the number of components is the lowest there. Of course, taking 7 principal components is still lower, beacause all portions of all variables are taken into account there. (see graph below) Also, 3 components already explain approximately 78% of the variation in the data.
+We would select three principal components, because the mean squared error compared to the number of components is the lowest there. Of course, taking seven principal components is still lower, since then we practically account for all variable. Also, three components already explain approximately 78% of the variation in the data.
 
 ```{r}
 set.seed(10)
@@ -222,3 +222,7 @@ mean((lm_pred-y.test)^2)
 ## How appropriate is PCR for this dataset?
 
 When we look at the analysis we did, we can certainly say that it is beneficial to use PCR for this dataset, since we can explain a lot of the variance with only 3 principal components. However, when we use cross-validation for our 3-PC model, we can see that the mean squared error of the PCR model is higher than the mean squared error of a normal linear regression model (see below). So, we do not think that PCR is really beneficial here. 
+
+# Model comparison
+
+
