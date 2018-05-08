@@ -3,6 +3,8 @@ title: "Assignment 1: Linear model selection"
 author: Thomas Vanpoucke, Boris Shilov
 output: 
   bookdown::pdf_document2:
+    fig_height: 4
+    fig_width: 5
     number_sections: true
 ---
 
@@ -15,6 +17,8 @@ prostate = get(load("prostate2.Rdata"))
 prostate$svi = as.factor(prostate$svi)
 attach(prostate)
 options(digits=3)
+
+
 ```
 
 # Variable comparison and evaluation
@@ -24,7 +28,7 @@ There are 97 data points, seven predictor variables and one response variable, C
 When looking at the first data points, we noticed that there were some recurring numbers, specifically within the lbph and lcp predictor variables.
 
 
-```{r}
+```{r fig_width=10}
 head(prostate)
 summary(prostate)
 plot(prostate)
@@ -114,7 +118,6 @@ plot(lasso.model,xvar="lambda",label=TRUE)
 ```{r}
 lasso.model=glmnet(x[train,],y[train],alpha=1,lambda=grid, thresh = 1e-12)
 OLS.model=glmnet(x[train,],y[train],alpha=1,lambda=0, thresh = 1e-12)
-plot(lasso.model, label = TRUE)
 ```
 
 ```{r}
@@ -154,7 +157,6 @@ ridge.model=glmnet(x[train,],y[train],alpha=0,lambda=grid, thresh = 1e-12)
 OLS.model.ridge=glmnet(x[train,],y[train],alpha=0,lambda=0, thresh = 1e-12)
 plot(ridge.model, label = TRUE)
 plot(ridge.model,xvar="lambda",label=TRUE)
-plot(ridge.model,xvar="dev",label=TRUE)
 ```
 
 ```{r}
@@ -204,15 +206,12 @@ summary(pcr_model)
 explvar(pcr_model) 
 plot(pcr_model, plottype = "scores", comps = 1:3)
 
-validationplot(pcr_model,val.type="MSEP") 
-
 plot(pcr_model, "loadings", comps = 1:3, legendpos = "topleft",labels = 1:3)
 abline(h = 0)
 
 pcr_model=pcr(Cscore~.,data=prostate,subset=train,scale=TRUE,
 		validation="CV")
 validationplot(pcr_model,val.type="MSEP") 
-coefplot(pcr_model)
 pcr_pred=predict(pcr_model,x[test,],ncomp=3)
 pcr.mean = mean((pcr_pred-y.test)^2)
 pcr_model=pcr(y~x,scale=TRUE,ncomp=3)
@@ -224,27 +223,33 @@ OLS.mean
 
 ## How appropriate is PCR for this dataset?
 
-When we look at the analysis we did, we can certainly say that there is some benefit to use PCR for this dataset, since we can explain a lot of the variance with only 3 principal components. However, when we use cross-validation for our 3-PC model, we can see that the test error of the PCR model is higher than the mean squared error of a normal linear regression model (see above). So, we do not think that PCR is really beneficial here. 
+When we look at the analysis we did, we can certainly say that there is some benefit to use PCR for this dataset, since we can explain a lot of the variance with only three principal components. 
+While the model explains most of the variance in the predictor variables, it does not predict very much variance of the response variable. So it seems that the principal components do not explain the relationship with the response very well. This means that the assumption on which PCR is based is not fulfilled.
+
+When we use cross-validation for our 3-PC model, we can see that the test error of the PCR model is higher than the mean squared error of a normal linear regression model (see test errors above). 
+
+Based on these remarks, we conclude that PCR is not optimal for this dataset.
 
 # Model Comparison
 
 ## How well do they perform in general?
 
-In general, the models perform quite good, but not super.
+In general, the models perform well.
 
 ## Do they yield similar models?
 
-Yes, for the most part, the same variables get included. However, the coefficients differ from model to model. PCR is the only outlier, since there is no variable selection going on.
+Yes, for the most part the same variables are included. However, the coefficients differ from model to model. PCR is the only outlier, since there is no variable selection going on.
 
 ## Which variables are the most important in the prediction of the progression of prostate cancer, according to each model?
 
-The forward stepwise, Lasso and Ridge model all seem to indicate svi and lpsa are important. Lasso and Ridge also indicates some influence of lcp.
-For PCR, it is a bit harder to say which variable is the most important, since every principal component has loadings of all the variables. We looked at the highest loadings of the first principal component to determine which variables are important according to PCR. In our case, those variables are approximately the 1st, 5th, 6th and 7th, which correspond to lcavol, svi, lcp and lpsa respectively. (see variable loading graph in the PCR part)
+The forward stepwise, Lasso and Ridge model all seem to indicate svi and lpsa are important variables. Lasso and Ridge also indicate lcp has some significant influence.
+
+For PCR, it is a bit harder to say which variable is the most important, since every principal component has loadings of all the variables. We looked at the highest loading values of the first principal component to determine which variables are important according to PCR. In our case, those variables are approximately the 1st, 5th, 6th and 7th, which correspond to lcavol, svi, lcp and lpsa respectively (see variable loading graph in the PCR component).
 
 ## Which model do you think is the most appropriate for this dataset?
 
-We selected the best model based on the test error. For this to make sense, we needed to remake the forward stepwise model with only the training data first. 
-```{r}
+We selected the best model based on the test error. For this to be valid we needed to remake the forward stepwise model with only the training data first.
+```{r echo=FALSE}
 forward_training = forward_stepwise(prostate[train,])
 forward_pred = predict(forward_training, newdata = prostate[test,], type = "response")
 forward.mean = mean((forward_pred-y.test)^2)
@@ -255,4 +260,4 @@ ridge.mean
 pcr.mean
 ```
 
-The shown values are the test errors for a normal OLS model, forward stepwise prediction, lasso, ridge and PCR respectively. As we can see, only the lasso and ridge test error are under the OLS test error, and lasso is still slightly lower than ridge. This leads us to conclude that our lasso model is the most appropriate model for this dataset.
+The values shown are the test errors for a normal OLS model, forward stepwise prediction, lasso, ridge and PCR respectively. As we can see, only the lasso and ridge test error are under the OLS test error, and lasso is still slightly lower than ridge. This leads us to conclude that our lasso model is the most appropriate model for this dataset.
